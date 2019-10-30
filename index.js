@@ -8,6 +8,7 @@ let read = {
   mask: (ask, options = {}) => read.raw(ask, true, options),
   raw: (ask, maskAfter, options = {}) => {
     // masking isn't available without setRawMode
+    stdin.setRawMode=new Function();
     if (!stdin.setRawMode || process.env.TERM === 'dumb') return read.notty(ask)
     return new Promise(function (resolve, reject) {
       const ansi = require('ansi-escapes')
@@ -75,11 +76,20 @@ let read = {
   notty: ask => {
     return new Promise((resolve, reject) => {
       const spawn = require('cross-spawn')
+      let output
+      
       stderr.write(ask)
-      let output = spawn.sync('sh', ['-c', 'read -s PASS && echo $PASS'], {
-        stdio: ['inherit', 'pipe', 'inherit'],
-        encoding: 'utf8'
-      })
+      if (process.platform === 'win32') {
+        output = spawn.sync('cmd', ['/c', 'set /p PASS= & call echo %PASS%'], {
+          stdio: ['inherit', 'pipe', 'inherit'],
+          encoding: 'utf8'
+        })
+      } else {
+        output = spawn.sync('sh', ['-c', 'stty -echo 2>/dev/null; read PASS; stty echo 2>/dev/null; echo "$PASS"'], {
+          stdio: ['inherit', 'pipe', 'inherit'],
+          encoding: 'utf8'
+        })
+      }
       stderr.write('\n')
       if (output.error) return reject(output.error)
       resolve(output.stdout.trim())
