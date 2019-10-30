@@ -8,7 +8,7 @@ let read = {
   mask: (ask, options = {}) => read.raw(ask, true, options),
   raw: (ask, maskAfter, options = {}) => {
     // masking isn't available without setRawMode
-    stdin.setRawMode=new Function();
+
     if (!stdin.setRawMode || process.env.TERM === 'dumb') return read.notty(ask)
     return new Promise(function (resolve, reject) {
       const ansi = require('ansi-escapes')
